@@ -8,7 +8,10 @@ import { BalotoController } from './baloto/baloto.controller'
 import { BalotoModule } from './baloto/baloto.module'
 
 @Module({
-  imports: [ScheduleModule.forRoot(), ConfigModule.forRoot(), TypeOrmModule.forRoot({
+  imports: [ScheduleModule.forRoot(), ConfigModule.forRoot({
+    envFilePath: '.env.' + process.env.NODE_ENV,
+    isGlobal: true
+  }), TypeOrmModule.forRoot({
     type: 'postgres', // type of our database
     host: process.env.DB_HOST, // database host
     port: parseInt(process.env.DB_PORT ?? '5432'), // database port
@@ -19,11 +22,9 @@ import { BalotoModule } from './baloto/baloto.module'
     autoLoadEntities: JSON.parse(process.env.AUTO_LOAD_ENTITIES ?? 'false') as boolean, // models will be loaded automatically
     synchronize: JSON.parse(process.env.SYNCHRONIZE ?? 'false') as boolean, // your entities will be synced with the database(recommended: disable in prod)
     migrations: ['migration/*.js'],
-    ssl: JSON.parse(process.env.SSL_REJECT_UNAUTHORIZED ?? 'true')
-      ? {
-          rejectUnauthorized: false
-        }
-      : undefined
+    ssl: {
+      rejectUnauthorized: process.env.SSL_REJECT_UNAUTHORIZED === 'true'
+    }
   }), BalotoModule],
   controllers: [BalotoController],
   providers: [BalotoService]
