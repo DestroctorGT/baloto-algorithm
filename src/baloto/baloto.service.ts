@@ -10,7 +10,10 @@ export class BalotoService {
   constructor (@InjectRepository(LastBalotoResults)
   private readonly lastBalotoResultsRepository: Repository<LastBalotoResults>) {}
 
-  @Cron('30 23 * * 3,6')
+  @Cron('* * * * *', {
+    name: 'save-last-results-baloto',
+    timeZone: 'America/Bogota'
+  })
   async saveLastBalotoResult (): Promise<LastBalotoResults | undefined> {
     const browser = await puppeteer.launch()
     const page = await browser.newPage()
