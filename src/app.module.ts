@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { BalotoService } from './baloto/baloto.service'
 import { BalotoController } from './baloto/baloto.controller'
 import { BalotoModule } from './baloto/baloto.module'
+import { TestsService } from './test/tests.service'
+import { TestController } from './test/test.controller'
 
 @Module({
   imports: [ScheduleModule.forRoot(), ConfigModule.forRoot({
@@ -26,7 +28,7 @@ import { BalotoModule } from './baloto/baloto.module'
       rejectUnauthorized: process.env.SSL_REJECT_UNAUTHORIZED === 'true'
     }
   }), BalotoModule],
-  controllers: [BalotoController],
-  providers: [BalotoService]
+  controllers: [BalotoController, TestController],
+  providers: [BalotoService, TestsService]
 })
 export class AppModule {}
