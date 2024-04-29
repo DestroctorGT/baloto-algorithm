@@ -16,14 +16,15 @@ export class BalotoService {
   })
   async saveLastBalotoResult (): Promise<LastBalotoResults | undefined> {
     const browser = await puppeteer.launch({
-      timeout: 0
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true
     })
     const page = await browser.newPage()
 
     try {
       const balotoWebSite = process.env.BALOTO_LAST_RESULTS ?? 'https://baloto.com/resultados'
       // Navegar a la página
-      await page.goto(balotoWebSite)
+      await page.goto(balotoWebSite, { waitUntil: 'networkidle2', timeout: 0 })
 
       // Obtener los números dentro de los divs con las clases "yellow-ball" y "red-ball"
       const lastBalotoResults: string[] = await page.evaluate(() => {
