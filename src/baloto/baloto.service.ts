@@ -10,7 +10,7 @@ export class BalotoService {
   constructor (@InjectRepository(LastBalotoResults)
   private readonly lastBalotoResultsRepository: Repository<LastBalotoResults>) {}
 
-  @Cron('* * * * *', {
+  @Cron('30 23 * * 3,6', {
     name: 'save-last-results-baloto',
     timeZone: 'America/Bogota'
   })
