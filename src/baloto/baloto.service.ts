@@ -15,7 +15,9 @@ export class BalotoService {
     timeZone: 'America/Bogota'
   })
   async saveLastBalotoResult (): Promise<LastBalotoResults | undefined> {
-    const browser = await puppeteer.launch()
+    const browser = await puppeteer.launch({
+      timeout: 0
+    })
     const page = await browser.newPage()
 
     try {
