@@ -8,6 +8,7 @@ async function bootstrap (): Promise<void> {
     .setTitle('API Algoritmo baloto')
     .setVersion('0.0.1')
     .build()
+  const port = process.env.PORT ?? 4000
 
   const document = SwaggerModule.createDocument(app, config)
 
@@ -19,6 +20,6 @@ async function bootstrap (): Promise<void> {
     }
   })
 
-  await app.listen(4000)
+  await app.listen(port)
 }
 void bootstrap()
