@@ -10,7 +10,7 @@ export class BalotoService {
   constructor (@InjectRepository(LastBalotoResults)
   private readonly lastBalotoResultsRepository: Repository<LastBalotoResults>) {}
 
-  @Cron('30 23 * * 3,6', {
+  @Cron('0 10 * * 4,0', {
     name: 'save-last-results-baloto',
     timeZone: 'America/Bogota'
   })
@@ -57,5 +57,13 @@ export class BalotoService {
         throw new Error(err.message)
       }
     }
+  }
+
+  async findAllBalotoResults (): Promise<LastBalotoResults[]> {
+    return await this.lastBalotoResultsRepository.find({ select: ['balotoResult'] })
+  }
+
+  async findAllBalotoRematchResults (): Promise<LastBalotoResults[]> {
+    return await this.lastBalotoResultsRepository.find({ select: ['balotoRematch'] })
   }
 }

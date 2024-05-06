@@ -11,8 +11,8 @@ export class LastBalotoResults {
   @Column('int', { array: true })
     balotoRematch: number[]
 
-  @CreateDateColumn({ type: 'date', nullable: true })
-    dateResult?: Date
+  @CreateDateColumn({ type: 'date' })
+    dateResult: Date
 
   @CreateDateColumn({
     type: 'timestamp without time zone',
