@@ -9,9 +9,11 @@ import { BalotoModule } from './baloto/baloto.module'
 import { TestsService } from './test/tests.service'
 import { TestController } from './test/test.controller'
 
+const envFilePath = process.env.NODE_ENV ? '.env.' + process.env.NODE_ENV : '.env'
+
 @Module({
   imports: [ScheduleModule.forRoot(), ConfigModule.forRoot({
-    envFilePath: '.env.' + process.env.NODE_ENV,
+    envFilePath,
     isGlobal: true
   }), TypeOrmModule.forRoot({
     type: 'postgres', // type of our database

@@ -66,4 +66,46 @@ export class BalotoService {
   async findAllBalotoRematchResults (): Promise<LastBalotoResults[]> {
     return await this.lastBalotoResultsRepository.find({ select: ['balotoRematch'] })
   }
+
+  async generatePossibleBalotoNumber (): Promise<{
+    possibleNumber: number[]
+    superBalota: number
+  }> {
+    // Contadores para cada número del 1 al 43
+    const numberFrequency = Array.from({ length: 43 }, () => 0)
+
+    // Contador para la super balota del 1 al 16
+    const superBalotaFrequency = Array.from({ length: 16 }, () => 0)
+
+    // Historial de resultados baloto (No incluye revancha)
+    const balotoResults = await this.findAllBalotoResults()
+
+    // Analizar el historial para contar la frecuencia de cada número y la super balota
+    balotoResults.forEach(result => {
+      result.balotoResult.forEach((numero, index) => {
+        if (index < 5) {
+          numberFrequency[numero - 1]++
+        } else {
+          superBalotaFrequency[numero - 1]++
+        }
+      })
+    })
+
+    // Encontrar los 5 números más frecuentes
+    const mostFrequentNumbers: number[] = []
+
+    for (let i = 0; i < 5; i++) {
+      const maxIndex = numberFrequency.indexOf(Math.max(...numberFrequency))
+      mostFrequentNumbers.push(maxIndex + 1)
+      numberFrequency[maxIndex] = -1 // Marcar el número como procesado
+    }
+
+    // Encontrar la super balota más frecuente
+    const mostFrequentSuperBalota = superBalotaFrequency.indexOf(Math.max(...superBalotaFrequency)) + 1
+
+    const mostFrequentNumbersSorted = mostFrequentNumbers.slice().sort((a, b) => a - b)
+
+    // Devolver los números y la super balota más frecuentes
+    return { possibleNumber: mostFrequentNumbersSorted, superBalota: mostFrequentSuperBalota }
+  }
 }

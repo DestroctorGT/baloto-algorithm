@@ -20,6 +20,15 @@ export class BalotoController {
     return await this.balotoService.findAllBalotoRematchResults()
   }
 
+  @ApiOperation({ summary: 'Generar el posible numero siguiente de baloto (sin revancha)' })
+  @Get('generate-next-baloto')
+  async generatePossibleBalotoNumber (): Promise<{
+    possibleNumber: number[]
+    superBalota: number
+  }> {
+    return await this.balotoService.generatePossibleBalotoNumber()
+  }
+
   @Post()
   async postLastBalotoResult (): Promise<LastBalotoResults | undefined> {
     return await this.balotoService.saveLastBalotoResult()
