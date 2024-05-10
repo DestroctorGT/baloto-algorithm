@@ -5,7 +5,7 @@ import puppeteer from 'puppeteer'
 import { LastBalotoResults } from './entities/last-results.entity'
 import { Repository } from 'typeorm'
 import { MiLotoResults } from './entities/miloto.entity'
-import { subDays, getYear, format } from 'date-fns'
+import { subDays, getYear } from 'date-fns'
 import { type FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
 
 @Injectable()
@@ -126,10 +126,9 @@ export class BalotoService {
   async findAllMilotoResults (query: FindAllMilotoResultsDto): Promise<MiLotoResults[]> {
     const { date } = query
 
-    const month = format(date, 'MM')
     const year = getYear(date).toString()
 
-    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').where('EXTRACT(MONTH FROM miloto_results.date) = :month', { month }).andWhere('EXTRACT(YEAR FROM miloto_results.date) = :year', { year }).getMany()
+    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').where('EXTRACT(YEAR FROM miloto_results.date) = :year', { year }).getMany()
 
     return allMilotoResults
   }
