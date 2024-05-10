@@ -4,11 +4,14 @@ import { InjectRepository } from '@nestjs/typeorm'
 import puppeteer from 'puppeteer'
 import { LastBalotoResults } from './entities/last-results.entity'
 import { Repository } from 'typeorm'
+import { MiLotoResults } from './entities/miloto.entity'
+import { subDays, getYear, format } from 'date-fns'
+import { type FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
 
 @Injectable()
 export class BalotoService {
   constructor (@InjectRepository(LastBalotoResults)
-  private readonly lastBalotoResultsRepository: Repository<LastBalotoResults>) {}
+  private readonly lastBalotoResultsRepository: Repository<LastBalotoResults>, @InjectRepository(MiLotoResults) private readonly miLotoResultsRepository: Repository<MiLotoResults>) {}
 
   @Cron('0 10 * * 4,0', {
     name: 'save-last-results-baloto',
@@ -22,6 +25,9 @@ export class BalotoService {
     const page = await browser.newPage()
 
     try {
+      const todayDate = new Date()
+      const yesterdayDate = subDays(todayDate, 1)
+
       const balotoWebSite = process.env.BALOTO_LAST_RESULTS ?? 'https://baloto.com/resultados'
       // Navegar a la página
       await page.goto(balotoWebSite, { waitUntil: 'networkidle2', timeout: 0 })
@@ -48,10 +54,60 @@ export class BalotoService {
 
       const lastBaloto = await this.lastBalotoResultsRepository.save({
         balotoResult: lastBalotoArrayInt,
-        balotoRematch: lastBalotoRematchArrayInt
+        balotoRematch: lastBalotoRematchArrayInt,
+        dateResult: yesterdayDate
       })
 
       return lastBaloto
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        throw new Error(err.message)
+      }
+    }
+  }
+
+  @Cron('0 10 * * 2,3,5,6', {
+    name: 'save-last-results-miloto',
+    timeZone: 'America/Bogota'
+  })
+  async saveLastMiLotoResult (): Promise<MiLotoResults | undefined> {
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true
+    })
+    const page = await browser.newPage()
+
+    try {
+      const todayDate = new Date()
+      const yesterdayDate = subDays(todayDate, 1)
+
+      const miLotoWebSite = process.env.MILOTO_LAST_RESULTS ?? 'https://baloto.com/miloto/resultados'
+
+      // Navegar a la página
+      await page.goto(miLotoWebSite, { waitUntil: 'networkidle2', timeout: 0 })
+
+      // Obtener los números dentro de los divs con las clases "yellow-ball"
+      const lastMiLotoResults: string[] = await page.evaluate(() => {
+        const lastMiLotoResultDivs = document.querySelectorAll('.yellow-ball')
+        const numbersArray: string[] = []
+
+        lastMiLotoResultDivs.forEach(div => {
+          numbersArray.push(div.textContent?.trim() ?? '')
+        })
+
+        return numbersArray
+      })
+
+      await browser.close()
+
+      const lastMiLotoArrayInt = lastMiLotoResults.map(number => parseInt(number, 10))
+
+      const lastMiloto = await this.miLotoResultsRepository.save({
+        miLotoResult: lastMiLotoArrayInt,
+        date: yesterdayDate
+      })
+
+      return lastMiloto
     } catch (err: unknown) {
       if (err instanceof Error) {
         throw new Error(err.message)
@@ -65,6 +121,17 @@ export class BalotoService {
 
   async findAllBalotoRematchResults (): Promise<LastBalotoResults[]> {
     return await this.lastBalotoResultsRepository.find({ select: ['balotoRematch'] })
+  }
+
+  async findAllMilotoResults (query: FindAllMilotoResultsDto): Promise<MiLotoResults[]> {
+    const { date } = query
+
+    const month = format(date, 'MM')
+    const year = getYear(date).toString()
+
+    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').where('EXTRACT(MONTH FROM miloto_results.date) = :month', { month }).andWhere('EXTRACT(YEAR FROM miloto_results.date) = :year', { year }).getMany()
+
+    return allMilotoResults
   }
 
   async generatePossibleBalotoNumber (): Promise<{
@@ -107,5 +174,33 @@ export class BalotoService {
 
     // Devolver los números y la super balota más frecuentes
     return { possibleNumber: mostFrequentNumbersSorted, superBalota: mostFrequentSuperBalota }
+  }
+
+  async generatePossibleMilotoNumbers (): Promise<number[]> {
+    const todayDate = new Date()
+
+    // Contadores para cada número del 1 al 39
+    const numberFrequency = Array.from({ length: 39 }, () => 0)
+
+    // Historial de resultados de la lotería
+    const miLotoResults = await this.findAllMilotoResults({ date: todayDate })
+
+    // Analizar el historial para contar la frecuencia de cada número
+    miLotoResults.forEach(result => {
+      result.miLotoResult.forEach(numero => {
+        numberFrequency[numero - 1]++
+      })
+    })
+
+    // Encontrar los 5 números menos frecuentes
+    const leastFrequentNumbers: number[] = []
+
+    for (let i = 0; i < 5; i++) {
+      const minIndex = numberFrequency.indexOf(Math.min(...numberFrequency))
+      leastFrequentNumbers.push(minIndex + 1)
+      numberFrequency[minIndex] = Infinity // Marcar el número como procesado
+    }
+
+    return leastFrequentNumbers.sort((a, b) => a - b)
   }
 }
