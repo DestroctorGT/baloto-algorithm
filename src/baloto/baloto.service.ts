@@ -7,6 +7,7 @@ import { Repository } from 'typeorm'
 import { MiLotoResults } from './entities/miloto.entity'
 import { subDays, getYear } from 'date-fns'
 import { type FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
+import * as ss from 'simple-statistics'
 
 @Injectable()
 export class BalotoService {
@@ -176,28 +177,47 @@ export class BalotoService {
   }
 
   async generatePossibleMilotoNumbers (): Promise<number[]> {
-    const todayDate = new Date()
+    const todayDate: Date = new Date()
 
     // Contadores para cada número del 1 al 39
-    const numberFrequency = Array.from({ length: 39 }, () => 0)
+    const numberFrequency: number[] = Array.from({ length: 39 }, () => 0)
 
     // Historial de resultados de la lotería
     const miLotoResults = await this.findAllMilotoResults({ date: todayDate })
 
     // Analizar el historial para contar la frecuencia de cada número
-    miLotoResults.forEach(result => {
-      result.miLotoResult.forEach(numero => {
+    miLotoResults.forEach((result: MiLotoResults) => {
+      result.miLotoResult.forEach((numero: number) => {
         numberFrequency[numero - 1]++
       })
     })
 
-    // Encontrar los 5 números menos frecuentes
+    // Preparar los datos para la regresión lineal
+    const X: number[] = [] // Números de lotería
+    const y: number[] = [] // Frecuencias
+
+    // Construir los datos para la regresión
+    for (let i = 0; i < numberFrequency.length; i++) {
+      X.push(i + 1) // Números de lotería
+      y.push(numberFrequency[i]) // Frecuencias
+    }
+
+    // Realizar la regresión lineal
+    const regression = ss.linearRegression(X.map((num, index) => [num, y[index]]))
+
+    // Obtener las pendientes de la regresión
+    const slope: number = regression.m
+
+    // Calcular las predicciones para cada número
+    const predictedFrequencies: number[] = y.map(num => num * slope)
+
+    // Encontrar los 5 números menos frecuentes basados en las predicciones
     const leastFrequentNumbers: number[] = []
 
     for (let i = 0; i < 5; i++) {
-      const minIndex = numberFrequency.indexOf(Math.min(...numberFrequency))
+      const minIndex: number = predictedFrequencies.indexOf(Math.min(...predictedFrequencies))
       leastFrequentNumbers.push(minIndex + 1)
-      numberFrequency[minIndex] = Infinity // Marcar el número como procesado
+      predictedFrequencies[minIndex] = Infinity // Marcar el número como procesado
     }
 
     return leastFrequentNumbers.sort((a, b) => a - b)
