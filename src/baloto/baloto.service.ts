@@ -7,7 +7,6 @@ import { Repository } from 'typeorm'
 import { MiLotoResults } from './entities/miloto.entity'
 import { subDays, getYear } from 'date-fns'
 import { type FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
-import * as ss from 'simple-statistics'
 
 @Injectable()
 export class BalotoService {
@@ -138,11 +137,11 @@ export class BalotoService {
     possibleNumber: number[]
     superBalota: number
   }> {
-    // Contadores para cada número del 1 al 43
-    const numberFrequency = Array.from({ length: 43 }, () => 0)
+    // Inicializar un objeto para almacenar las frecuencias de los números de baloto junto con el número real
+    const numberFrequenciesBaloto: Array<{ number: number, frequency: number }> = []
 
-    // Contador para la super balota del 1 al 16
-    const superBalotaFrequency = Array.from({ length: 16 }, () => 0)
+    // Inicializar un objeto para almacenar las frecuencias de los números super balota junto con el número real
+    const numberFrequenciesSuperBalota: Array<{ number: number, frequency: number }> = []
 
     // Historial de resultados baloto (No incluye revancha)
     const balotoResults = await this.findAllBalotoResults()
@@ -151,26 +150,58 @@ export class BalotoService {
     balotoResults.forEach(result => {
       result.balotoResult.forEach((numero, index) => {
         if (index < 5) {
-          numberFrequency[numero - 1]++
+          const numberExistsInArray = numberFrequenciesBaloto.findIndex((obj) => obj.number === numero)
+
+          if (numberExistsInArray >= 0) {
+            numberFrequenciesBaloto[numberExistsInArray].frequency++
+          } else {
+            numberFrequenciesBaloto.push({ number: numero, frequency: 1 })
+          }
         } else {
-          superBalotaFrequency[numero - 1]++
+          const numberExistsInArray = numberFrequenciesSuperBalota.findIndex((obj) => obj.number === numero)
+
+          if (numberExistsInArray >= 0) {
+            numberFrequenciesSuperBalota[numberExistsInArray].frequency++
+          } else {
+            numberFrequenciesSuperBalota.push({ number: numero, frequency: 1 })
+          }
         }
       })
     })
 
-    // Encontrar los 5 números más frecuentes
-    const mostFrequentNumbers: number[] = []
+    const possibleNumbersBaloto: number[] = []
+
+    const possibleNumbersSuperBalota: number[] = []
+
+    numberFrequenciesBaloto.forEach((obj) => {
+      if (obj.frequency >= 1) possibleNumbersBaloto.push(obj.number)
+    })
+
+    numberFrequenciesSuperBalota.forEach((obj) => {
+      if (obj.frequency >= 1) possibleNumbersSuperBalota.push(obj.number)
+    })
+
+    // Crear una copia del array original para no modificar el original
+    const possibleNumbersBalotoCopy = [...possibleNumbersBaloto]
+
+    // Array para almacenar los números seleccionados
+    const newNumbers: number[] = []
 
     for (let i = 0; i < 5; i++) {
-      const maxIndex = numberFrequency.indexOf(Math.max(...numberFrequency))
-      mostFrequentNumbers.push(maxIndex + 1)
-      numberFrequency[maxIndex] = -1 // Marcar el número como procesado
+      const randomIndex = Math.floor(Math.random() * possibleNumbersBalotoCopy.length)
+
+      newNumbers.push(possibleNumbersBalotoCopy[randomIndex])
+
+      // Eliminar el número seleccionado del array copia para evitar repeticiones
+      possibleNumbersBalotoCopy.splice(randomIndex, 1)
     }
 
     // Encontrar la super balota más frecuente
-    const mostFrequentSuperBalota = superBalotaFrequency.indexOf(Math.max(...superBalotaFrequency)) + 1
+    const mostFrequentSuperBalotaIndex = Math.floor(Math.random() * possibleNumbersSuperBalota.length)
 
-    const mostFrequentNumbersSorted = mostFrequentNumbers.slice().sort((a, b) => a - b)
+    const mostFrequentSuperBalota = possibleNumbersSuperBalota[mostFrequentSuperBalotaIndex]
+
+    const mostFrequentNumbersSorted = newNumbers.slice().sort((a, b) => a - b)
 
     // Devolver los números y la super balota más frecuentes
     return { possibleNumber: mostFrequentNumbersSorted, superBalota: mostFrequentSuperBalota }
@@ -179,47 +210,46 @@ export class BalotoService {
   async generatePossibleMilotoNumbers (): Promise<number[]> {
     const todayDate: Date = new Date()
 
-    // Contadores para cada número del 1 al 39
-    const numberFrequency: number[] = Array.from({ length: 39 }, () => 0)
-
     // Historial de resultados de la lotería
     const miLotoResults = await this.findAllMilotoResults({ date: todayDate })
 
+    // Inicializar un objeto para almacenar las frecuencias de los números junto con el número real
+    const numberFrequencies: Array<{ number: number, frequency: number }> = []
+
     // Analizar el historial para contar la frecuencia de cada número
-    miLotoResults.forEach((result: MiLotoResults) => {
-      result.miLotoResult.forEach((numero: number) => {
-        numberFrequency[numero - 1]++
+    miLotoResults.forEach((result) => {
+      result.miLotoResult.forEach((numero) => {
+        const numberExistsInArray = numberFrequencies.findIndex((obj) => obj.number === numero)
+
+        if (numberExistsInArray >= 0) {
+          numberFrequencies[numberExistsInArray].frequency++
+        } else {
+          numberFrequencies.push({ number: numero, frequency: 1 })
+        }
       })
     })
 
-    // Preparar los datos para la regresión lineal
-    const X: number[] = [] // Números de lotería
-    const y: number[] = [] // Frecuencias
+    const possibleNumbers: number[] = []
 
-    // Construir los datos para la regresión
-    for (let i = 0; i < numberFrequency.length; i++) {
-      X.push(i + 1) // Números de lotería
-      y.push(numberFrequency[i]) // Frecuencias
-    }
+    numberFrequencies.forEach((obj) => {
+      if (obj.frequency >= 9) possibleNumbers.push(obj.number)
+    })
 
-    // Realizar la regresión lineal
-    const regression = ss.linearRegression(X.map((num, index) => [num, y[index]]))
+    // Crear una copia del array original para no modificar el original
+    const possibleNumbersCopy = [...possibleNumbers]
 
-    // Obtener las pendientes de la regresión
-    const slope: number = regression.m
-
-    // Calcular las predicciones para cada número
-    const predictedFrequencies: number[] = y.map(num => num * slope)
-
-    // Encontrar los 5 números menos frecuentes basados en las predicciones
-    const leastFrequentNumbers: number[] = []
+    // Array para almacenar los números seleccionados
+    const newNumbers: number[] = []
 
     for (let i = 0; i < 5; i++) {
-      const minIndex: number = predictedFrequencies.indexOf(Math.min(...predictedFrequencies))
-      leastFrequentNumbers.push(minIndex + 1)
-      predictedFrequencies[minIndex] = Infinity // Marcar el número como procesado
+      const randomIndex = Math.floor(Math.random() * possibleNumbersCopy.length)
+
+      newNumbers.push(possibleNumbersCopy[randomIndex])
+
+      // Eliminar el número seleccionado del array copia para evitar repeticiones
+      possibleNumbersCopy.splice(randomIndex, 1)
     }
 
-    return leastFrequentNumbers.sort((a, b) => a - b)
+    return newNumbers.sort((a, b) => a - b)
   }
 }
