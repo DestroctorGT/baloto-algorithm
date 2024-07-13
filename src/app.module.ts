@@ -8,6 +8,7 @@ import { BalotoController } from './baloto/baloto.controller'
 import { BalotoModule } from './baloto/baloto.module'
 import { TestsService } from './test/tests.service'
 import { TestController } from './test/test.controller'
+import { AuthModule } from './auth/auth.module'
 
 const envFilePath = process.env.NODE_ENV ? '.env.' + process.env.NODE_ENV : '.env'
 
@@ -29,7 +30,7 @@ const envFilePath = process.env.NODE_ENV ? '.env.' + process.env.NODE_ENV : '.en
     ssl: {
       rejectUnauthorized: process.env.SSL_REJECT_UNAUTHORIZED === 'true'
     }
-  }), BalotoModule],
+  }), BalotoModule, AuthModule],
   controllers: [BalotoController, TestController],
   providers: [BalotoService, TestsService]
 })

@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import cookieParser from 'cookie-parser'
 
 const port = process.env.PORT ?? 4000
 
 async function bootstrap (): Promise<void> {
   const app = await NestFactory.create(AppModule)
+  app.use(cookieParser())
   const config = new DocumentBuilder()
     .setTitle('API Algoritmo baloto')
     .setVersion('0.0.1')
