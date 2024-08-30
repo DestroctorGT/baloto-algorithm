@@ -18,7 +18,7 @@ async function bootstrap (): Promise<void> {
 
   // Habilitar CORS
   app.enableCors({
-    origin: '*',
+    origin: ['https://baloto-generator.vercel.app', 'http://localhost:3000'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true // Si necesitas enviar cookies o autorizaciones
   })
