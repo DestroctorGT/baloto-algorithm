@@ -15,8 +15,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.logIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: true })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: true })
+    res.cookie('access_token', accessToken, { httpOnly: false, secure: false })
+    res.cookie('refresh_token', refreshToken, { httpOnly: false, secure: false })
 
     return { isSuccessful: 'Login exitoso' }
   }
@@ -27,8 +27,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.signIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: true })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: true })
+    res.cookie('access_token', accessToken, { httpOnly: false, secure: false })
+    res.cookie('refresh_token', refreshToken, { httpOnly: false, secure: false })
 
     return { isSuccessful: 'Registro exitoso' }
   }
