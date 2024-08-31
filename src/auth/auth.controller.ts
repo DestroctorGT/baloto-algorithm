@@ -15,18 +15,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.logIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      domain: 'https://baloto-generator.vercel.app'
-    })
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      domain: 'https://baloto-generator.vercel.app'
-    })
+    res.cookie('access_token', accessToken)
+    res.cookie('refresh_token', refreshToken)
 
     return { isSuccessful: 'Login exitoso' }
   }
@@ -37,18 +27,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.signIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      domain: 'https://baloto-generator.vercel.app'
-    })
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      domain: 'https://baloto-generator.vercel.app'
-    })
+    res.cookie('access_token', accessToken)
+    res.cookie('refresh_token', refreshToken)
 
     return { isSuccessful: 'Registro exitoso' }
   }
