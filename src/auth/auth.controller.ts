@@ -18,14 +18,12 @@ export class AuthController {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
-      path: '/'
+      sameSite: 'none'
     })
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
-      path: '/'
+      sameSite: 'none'
     })
 
     return { isSuccessful: 'Login exitoso' }
@@ -40,14 +38,12 @@ export class AuthController {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
-      path: '/'
+      sameSite: 'none'
     })
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
-      path: '/'
+      sameSite: 'none'
     })
 
     return { isSuccessful: 'Registro exitoso' }
