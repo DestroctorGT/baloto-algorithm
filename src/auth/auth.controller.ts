@@ -15,8 +15,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.logIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' })
+    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
+    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
 
     return { isSuccessful: 'Login exitoso' }
   }
@@ -27,8 +27,8 @@ export class AuthController {
     const { accessToken, refreshToken } = await this.authService.signIn(body)
 
     // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' })
+    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
+    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
 
     return { isSuccessful: 'Registro exitoso' }
   }
