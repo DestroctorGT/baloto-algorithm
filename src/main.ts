@@ -1,14 +1,12 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import * as cookieParser from 'cookie-parser'
 import { TransformInterceptor } from './interceptors/transform.interceptor'
 
 const port = process.env.PORT ?? 4000
 
 async function bootstrap (): Promise<void> {
   const app = await NestFactory.create(AppModule)
-  app.use(cookieParser())
   const config = new DocumentBuilder()
     .setTitle('API Algoritmo baloto')
     .setVersion('0.0.1')
@@ -19,8 +17,7 @@ async function bootstrap (): Promise<void> {
   // Habilitar CORS
   app.enableCors({
     origin: ['https://baloto-generator.vercel.app', 'http://localhost:3000'],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true // Si necesitas enviar cookies o autorizaciones
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
   })
   app.useGlobalInterceptors(new TransformInterceptor())
 

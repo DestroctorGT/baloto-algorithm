@@ -1,8 +1,7 @@
-import { Body, Controller, Post, Res } from '@nestjs/common'
+import { Body, Controller, Post } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dtos/login.dto'
-import { Response } from 'express'
 import { CreateUserDto } from 'src/users/dtos/create-user.dto'
 @ApiTags('auth')
 @Controller('auth')
@@ -11,34 +10,29 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Iniciar sesión' })
   @Post('login')
-  async logIn (@Body() body: LoginDto, @Res({ passthrough: true }) res: Response): Promise<{ isSuccessful: string }> {
+  async logIn (@Body() body: LoginDto): Promise<{
+    accessToken: string
+    refreshToken: string
+  }> {
     const { accessToken, refreshToken } = await this.authService.logIn(body)
 
-    // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
-
-    return { isSuccessful: 'Login exitoso' }
+    return { accessToken, refreshToken }
   }
 
   @ApiOperation({ summary: 'Registrarse' })
   @Post('signIn')
-  async signIn (@Body() body: CreateUserDto, @Res({ passthrough: true }) res: Response): Promise<{ isSuccessful: string }> {
+  async signIn (@Body() body: CreateUserDto): Promise<{
+    accessToken: string
+    refreshToken: string
+  }> {
     const { accessToken, refreshToken } = await this.authService.signIn(body)
 
-    // Establece las cookies
-    res.cookie('access_token', accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
-    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none' })
-
-    return { isSuccessful: 'Registro exitoso' }
+    return { accessToken, refreshToken }
   }
 
   @ApiOperation({ summary: 'Cerrar sesión' })
   @Post('logOut')
-  async logOut (@Res({ passthrough: true }) res: Response): Promise<{ isSuccessful: string }> {
-    res.clearCookie('access_token', { path: '/' })
-    res.clearCookie('refresh_token', { path: '/' })
-
+  async logOut (): Promise<{ isSuccessful: string }> {
     return { isSuccessful: 'Sesión cerrada con éxito' }
   }
 }
