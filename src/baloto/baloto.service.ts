@@ -235,20 +235,35 @@ export class BalotoService {
       if (obj.frequency >= 9) possibleNumbers.push(obj.number)
     })
 
+    // Listado de sumas específicas de sorteos ganadores
+    const pastWinningSums = [78, 58, 119, 66, 66, 82, 109, 75, 87, 79, 111, 106, 133, 83, 96, 126, 55]
+
+    // Seleccionar una suma al azar del listado de sumas ganadoras
+    const targetSum = pastWinningSums[Math.floor(Math.random() * pastWinningSums.length)]
+
+    // Intentar generar números que cumplan con la suma específica
+    let newNumbers: number[] = []
+    let sum = 0
+
     // Crear una copia del array original para no modificar el original
     const possibleNumbersCopy = [...possibleNumbers]
 
-    // Array para almacenar los números seleccionados
-    const newNumbers: number[] = []
+    do {
+      // Reiniciar las variables para cada intento
+      newNumbers = []
+      const tempNumbers = [...possibleNumbersCopy]
 
-    for (let i = 0; i < 5; i++) {
-      const randomIndex = Math.floor(Math.random() * possibleNumbersCopy.length)
+      for (let i = 0; i < 5; i++) {
+        const randomIndex = Math.floor(Math.random() * tempNumbers.length)
+        newNumbers.push(tempNumbers[randomIndex])
 
-      newNumbers.push(possibleNumbersCopy[randomIndex])
+        // Eliminar el número seleccionado del array copia para evitar repeticiones
+        tempNumbers.splice(randomIndex, 1)
+      }
 
-      // Eliminar el número seleccionado del array copia para evitar repeticiones
-      possibleNumbersCopy.splice(randomIndex, 1)
-    }
+      // Calcular la suma de los números seleccionados
+      sum = newNumbers.reduce((acc, num) => acc + num, 0)
+    } while (sum !== targetSum) // Continuar hasta que la suma sea exactamente igual a la suma objetivo
 
     return newNumbers.sort((a, b) => a - b)
   }
