@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import puppeteer from 'puppeteer'
@@ -174,36 +174,62 @@ export class BalotoService {
     const possibleNumbersSuperBalota: number[] = []
 
     numberFrequenciesBaloto.forEach((obj) => {
-      if (obj.frequency >= 1) possibleNumbersBaloto.push(obj.number)
+      if (obj.frequency >= 5) possibleNumbersBaloto.push(obj.number)
     })
 
     numberFrequenciesSuperBalota.forEach((obj) => {
-      if (obj.frequency >= 1) possibleNumbersSuperBalota.push(obj.number)
+      if (obj.frequency >= 3) possibleNumbersSuperBalota.push(obj.number)
     })
+
+    // Listado de sumas específicas de sorteos ganadores
+    const pastWinningSums = [80, 93, 110, 126, 130, 165]
+
+    // Seleccionar una suma al azar del listado de sumas ganadoras
+    const targetSum = pastWinningSums[Math.floor(Math.random() * pastWinningSums.length)]
 
     // Crear una copia del array original para no modificar el original
     const possibleNumbersBalotoCopy = [...possibleNumbersBaloto]
 
-    // Array para almacenar los números seleccionados
-    const newNumbers: number[] = []
+    // Intentar generar números que cumplan con la suma específica
+    let newNumbers: number[] = []
+    let mostFrequentNumbersSorted: number[] = []
+    let mostFrequentSuperBalota = 0
+    let sum = 0
 
-    for (let i = 0; i < 5; i++) {
-      const randomIndex = Math.floor(Math.random() * possibleNumbersBalotoCopy.length)
+    let attempts = 0
+    const maxAttempts = 1000
 
-      newNumbers.push(possibleNumbersBalotoCopy[randomIndex])
+    do {
+      // Reiniciar las variables para cada intento
+      newNumbers = []
+      const tempNumbers = [...possibleNumbersBalotoCopy]
 
-      // Eliminar el número seleccionado del array copia para evitar repeticiones
-      possibleNumbersBalotoCopy.splice(randomIndex, 1)
+      for (let i = 0; i < 5; i++) {
+        const randomIndex = Math.floor(Math.random() * tempNumbers.length)
+
+        newNumbers.push(tempNumbers[randomIndex])
+
+        // Eliminar el número seleccionado del array copia para evitar repeticiones
+        tempNumbers.splice(randomIndex, 1)
+      }
+
+      // Encontrar la super balota más frecuente
+      const mostFrequentSuperBalotaIndex = Math.floor(Math.random() * possibleNumbersSuperBalota.length)
+      mostFrequentSuperBalota = possibleNumbersSuperBalota[mostFrequentSuperBalotaIndex]
+
+      mostFrequentNumbersSorted = newNumbers.slice().sort((a, b) => a - b)
+
+      // Calcular la suma de los números seleccionados
+      sum = mostFrequentNumbersSorted.reduce((acc, num) => acc + num, 0) + mostFrequentSuperBalota
+
+      attempts++
+    } while (sum !== targetSum && attempts < maxAttempts)
+
+    // Si se exceden los intentos, devolver los números más cercanos encontrados
+    if (attempts === maxAttempts) {
+      throw new HttpException('No se encontró una combinación que cumpla con la suma objetivo en los intentos permitidos.', HttpStatus.SERVICE_UNAVAILABLE)
     }
 
-    // Encontrar la super balota más frecuente
-    const mostFrequentSuperBalotaIndex = Math.floor(Math.random() * possibleNumbersSuperBalota.length)
-
-    const mostFrequentSuperBalota = possibleNumbersSuperBalota[mostFrequentSuperBalotaIndex]
-
-    const mostFrequentNumbersSorted = newNumbers.slice().sort((a, b) => a - b)
-
-    // Devolver los números y la super balota más frecuentes
     return { possibleNumber: mostFrequentNumbersSorted, superBalota: mostFrequentSuperBalota }
   }
 
