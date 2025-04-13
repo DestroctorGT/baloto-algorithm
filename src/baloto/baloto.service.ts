@@ -5,8 +5,7 @@ import puppeteer from 'puppeteer'
 import { LastBalotoResults } from './entities/last-results.entity'
 import { Repository } from 'typeorm'
 import { MiLotoResults } from './entities/miloto.entity'
-import { subDays, getYear } from 'date-fns'
-import { type FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
+import { subDays } from 'date-fns'
 
 @Injectable()
 export class BalotoService {
@@ -123,12 +122,8 @@ export class BalotoService {
     return await this.lastBalotoResultsRepository.find({ select: ['balotoRematch'] })
   }
 
-  async findAllMilotoResults (query: FindAllMilotoResultsDto): Promise<MiLotoResults[]> {
-    const { date } = query
-
-    const year = getYear(date).toString()
-
-    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').where('EXTRACT(YEAR FROM miloto_results.date) = :year', { year }).getMany()
+  async findAllMilotoResults (): Promise<MiLotoResults[]> {
+    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').getMany()
 
     return allMilotoResults
   }
@@ -208,10 +203,8 @@ export class BalotoService {
   }
 
   async generatePossibleMilotoNumbers (): Promise<number[]> {
-    const todayDate: Date = new Date()
-
     // Historial de resultados de la lotería
-    const miLotoResults = await this.findAllMilotoResults({ date: todayDate })
+    const miLotoResults = await this.findAllMilotoResults()
 
     // Inicializar un objeto para almacenar las frecuencias de los números junto con el número real
     const numberFrequencies: Array<{ number: number, frequency: number }> = []

@@ -1,9 +1,8 @@
-import { Controller, Get, Post, Query } from '@nestjs/common'
+import { Controller, Get, Post } from '@nestjs/common'
 import { BalotoService } from './baloto.service'
 import { type LastBalotoResults } from './entities/last-results.entity'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { type MiLotoResults } from './entities/miloto.entity'
-import { FindAllMilotoResultsDto } from './dtos/find-all-miloto-results.dto'
 
 @ApiTags('baloto')
 @Controller('baloto')
@@ -24,8 +23,8 @@ export class BalotoController {
 
   @ApiOperation({ summary: 'Obtener todos los resultados de miLoto' })
   @Get('last-miloto-results')
-  async findAllMilotoResults (@Query() query: FindAllMilotoResultsDto): Promise<MiLotoResults[]> {
-    return await this.balotoService.findAllMilotoResults(query)
+  async findAllMilotoResults (): Promise<MiLotoResults[]> {
+    return await this.balotoService.findAllMilotoResults()
   }
 
   @ApiOperation({ summary: 'Generar el posible numero siguiente de baloto (sin revancha)' })
