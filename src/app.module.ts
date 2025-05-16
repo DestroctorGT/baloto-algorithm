@@ -18,19 +18,21 @@ const envFilePath = process.env.NODE_ENV ? '.env.' + process.env.NODE_ENV : '.en
     envFilePath,
     isGlobal: true
   }), TypeOrmModule.forRoot({
-    type: 'postgres', // type of our database
-    host: process.env.DB_HOST, // database host
-    port: parseInt(process.env.DB_PORT ?? '5432'), // database port
-    username: process.env.DB_USERNAME, // username
-    password: process.env.DB_PASSWORD, // user password
-    database: process.env.DB_NAME, // name of our database,
+    type: 'postgres',
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT?.toString() ?? '5432'),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     retryDelay: parseInt(process.env.RETRY_DELAY ?? '3000'),
-    autoLoadEntities: JSON.parse(process.env.AUTO_LOAD_ENTITIES ?? 'false') as boolean, // models will be loaded automatically
-    synchronize: JSON.parse(process.env.SYNCHRONIZE ?? 'false') as boolean, // your entities will be synced with the database(recommended: disable in prod)
+    autoLoadEntities: JSON.parse(process.env.AUTO_LOAD_ENTITIES ?? 'false') as boolean,
+    synchronize: JSON.parse(process.env.SYNCHRONIZE ?? 'false') as boolean,
     migrations: ['migration/*.js'],
-    ssl: {
-      rejectUnauthorized: process.env.SSL_REJECT_UNAUTHORIZED === 'true'
-    }
+    ssl: JSON.parse(process.env.SSL_REJECT_UNAUTHORIZED ?? 'true')
+      ? {
+          rejectUnauthorized: false
+        }
+      : undefined
   }), BalotoModule, AuthModule, UsersModule],
   controllers: [BalotoController, TestController],
   providers: [BalotoService, TestsService]
