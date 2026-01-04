@@ -55,5 +55,9 @@ pids
 *.seed
 *.pid.lock
 
+# Bmad
+.bmad-core
+.claude/commands/BMad
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
