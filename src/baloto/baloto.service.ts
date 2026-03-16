@@ -123,7 +123,11 @@ export class BalotoService {
   }
 
   async findAllMilotoResults (): Promise<MiLotoResults[]> {
-    const allMilotoResults = await this.miLotoResultsRepository.createQueryBuilder('miloto_results').select('miloto_results.miLotoResult').getMany()
+    const allMilotoResults = await this.miLotoResultsRepository
+      .createQueryBuilder('miloto_results')
+      .select(['miloto_results.miLotoResult', 'miloto_results.date'])
+      .orderBy('miloto_results.date', 'DESC')
+      .getMany()
 
     return allMilotoResults
   }
@@ -203,60 +207,122 @@ export class BalotoService {
   }
 
   async generatePossibleMilotoNumbers (): Promise<number[]> {
-    // Historial de resultados de la lotería
+    // Historial de resultados de la lotería (ordenados por fecha DESC para recencia)
     const miLotoResults = await this.findAllMilotoResults()
 
-    // Inicializar un objeto para almacenar las frecuencias de los números junto con el número real
+    // Fallback si no hay datos en DB
+    if (miLotoResults.length === 0) {
+      const all = Array.from({ length: 43 }, (_, i) => i + 1)
+      const fallback: number[] = []
+      for (let i = 0; i < 5; i++) {
+        const idx = Math.floor(Math.random() * all.length)
+        fallback.push(all[idx])
+        all.splice(idx, 1)
+      }
+      return fallback.sort((a, b) => a - b)
+    }
+
+    // Mejora 4: Sesgo de recencia — últimos 30 sorteos tienen peso 2x
+    const RECENT_WINDOW = 30
     const numberFrequencies: Array<{ number: number, frequency: number }> = []
 
-    // Analizar el historial para contar la frecuencia de cada número
-    miLotoResults.forEach((result) => {
+    miLotoResults.forEach((result, index) => {
+      const weight = index < RECENT_WINDOW ? 2 : 1
       result.miLotoResult.forEach((numero) => {
-        const numberExistsInArray = numberFrequencies.findIndex((obj) => obj.number === numero)
-
-        if (numberExistsInArray >= 0) {
-          numberFrequencies[numberExistsInArray].frequency++
+        const existing = numberFrequencies.find((o) => o.number === numero)
+        if (existing !== undefined) {
+          existing.frequency += weight
         } else {
-          numberFrequencies.push({ number: numero, frequency: 1 })
+          numberFrequencies.push({ number: numero, frequency: weight })
         }
       })
     })
 
-    const possibleNumbers: number[] = []
+    // Mejora 1: Umbral de frecuencia dinámico — percentil 60 de las frecuencias
+    const sortedFreqs = numberFrequencies.map((o) => o.frequency).sort((a, b) => a - b)
+    const p60Index = Math.floor(sortedFreqs.length * 0.6)
+    const threshold = sortedFreqs[p60Index]
 
-    numberFrequencies.forEach((obj) => {
-      if (obj.frequency >= 9) possibleNumbers.push(obj.number)
-    })
+    let possibleNumbers: number[] = numberFrequencies
+      .filter((obj) => obj.frequency >= threshold)
+      .map((obj) => obj.number)
 
-    // Listado de sumas específicas de sorteos ganadores
-    const pastWinningSums = [78, 58, 119, 66, 66, 82, 109, 75, 87, 79, 111, 106, 133, 83, 96, 126, 55]
+    // Garantizar un pool mínimo de 15 números
+    if (possibleNumbers.length < 15) {
+      const topByFreq = [...numberFrequencies]
+        .sort((a, b) => b.frequency - a.frequency)
+        .map((o) => o.number)
+      for (const n of topByFreq) {
+        if (!possibleNumbers.includes(n)) possibleNumbers.push(n)
+        if (possibleNumbers.length >= 15) break
+      }
+    }
 
-    // Seleccionar una suma al azar del listado de sumas ganadoras
-    const targetSum = pastWinningSums[Math.floor(Math.random() * pastWinningSums.length)]
+    // Mejora 2: Calcular rango de suma estadístico desde los datos históricos reales
+    const pastWinningSums = miLotoResults.map((r) =>
+      r.miLotoResult.reduce((acc, n) => acc + n, 0)
+    )
+    const mean = pastWinningSums.reduce((a, b) => a + b, 0) / pastWinningSums.length
+    const std = Math.sqrt(
+      pastWinningSums.reduce((a, b) => a + (b - mean) ** 2, 0) / pastWinningSums.length
+    )
+    const minSum = Math.round(mean - std)
+    const maxSum = Math.round(mean + std)
 
-    // Intentar generar números que cumplan con la suma específica
+    // Mejora 5: Distribución por rangos (bajo: 1-14, medio: 15-28, alto: 29-43)
+    const lowRange = possibleNumbers.filter((n) => n <= 14)
+    const midRange = possibleNumbers.filter((n) => n >= 15 && n <= 28)
+    const highRange = possibleNumbers.filter((n) => n >= 29)
+
+    // Mejora 3: Límite de iteraciones con fallback
+    const MAX_ATTEMPTS = 10000
+    let attempts = 0
     let newNumbers: number[] = []
     let sum = 0
 
-    // Crear una copia del array original para no modificar el original
-    const possibleNumbersCopy = [...possibleNumbers]
-
     do {
-      // Reiniciar las variables para cada intento
       newNumbers = []
-      const tempNumbers = [...possibleNumbersCopy]
+      const tempLow = [...lowRange]
+      const tempMid = [...midRange]
+      const tempHigh = [...highRange]
+      const tempAll = [...possibleNumbers]
 
-      for (let i = 0; i < 5; i++) {
-        const randomIndex = Math.floor(Math.random() * tempNumbers.length)
-        newNumbers.push(tempNumbers[randomIndex])
-
-        // Eliminar el número seleccionado del array copia para evitar repeticiones
-        tempNumbers.splice(randomIndex, 1)
+      const pickFrom = (source: number[]): number | null => {
+        if (source.length === 0) return null
+        const idx = Math.floor(Math.random() * source.length)
+        const num = source[idx]
+        source.splice(idx, 1)
+        const allIdx = tempAll.indexOf(num)
+        if (allIdx >= 0) tempAll.splice(allIdx, 1)
+        return num
       }
 
-      // Calcular la suma de los números seleccionados
-      sum = newNumbers.reduce((acc, num) => acc + num, 0)
-    } while (sum !== targetSum) // Continuar hasta que la suma sea exactamente igual a la suma objetivo
+      // Seleccionar al menos 1 número de cada rango disponible
+      const fromLow = pickFrom(tempLow)
+      const fromMid = pickFrom(tempMid)
+      const fromHigh = pickFrom(tempHigh)
+      if (fromLow !== null) newNumbers.push(fromLow)
+      if (fromMid !== null) newNumbers.push(fromMid)
+      if (fromHigh !== null) newNumbers.push(fromHigh)
+
+      // Completar los 5 números restantes del pool general
+      while (newNumbers.length < 5 && tempAll.length > 0) {
+        const idx = Math.floor(Math.random() * tempAll.length)
+        newNumbers.push(tempAll[idx])
+        tempAll.splice(idx, 1)
+      }
+
+      sum = newNumbers.reduce((acc, n) => acc + n, 0)
+      attempts++
+    } while ((sum < minSum || sum > maxSum) && attempts < MAX_ATTEMPTS)
+
+    // Fallback: si no se encontró combinación válida, retornar los 5 más frecuentes
+    if (attempts >= MAX_ATTEMPTS) {
+      newNumbers = [...numberFrequencies]
+        .sort((a, b) => b.frequency - a.frequency)
+        .slice(0, 5)
+        .map((o) => o.number)
+    }
 
     return newNumbers.sort((a, b) => a - b)
   }
